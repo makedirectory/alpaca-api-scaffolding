@@ -1,3 +1,6 @@
+You can use these functions in your trading_bot.py file like this:
+
+```python
 from alpaca_api import AlpacaAPI
 
 api = AlpacaAPI('<APCA-API-KEY-ID>', '<APCA-API-SECRET-KEY>', 'https://paper-api.alpaca.markets')
@@ -33,3 +36,6 @@ order = api.submit_order(
     time_in_force='gtc'
 )
 print(order)
+```
+
+Remember to replace '<APCA-API-KEY-ID>', '<APCA-API-SECRET-KEY>', 'https://paper-api.alpaca.markets' with your actual API key, secret key and the API endpoint.
