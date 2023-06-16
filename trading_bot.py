@@ -1,6 +1,6 @@
 import logging
-from src.alpaca_api import AlpacaAPI
-from src.symbol_scanner import SymbolScanner
+from src.alpaca.alpaca_api import AlpacaAPI
+from src.scanner.symbol_scanner import SymbolScanner
 from src.portfolio_manager import PortfolioManager
 from src.trade_executor import TradeExecutor
 
