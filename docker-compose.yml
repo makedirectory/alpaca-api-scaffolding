@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  trading-bot:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "80:80"
+    depends_on:
+      - mongo-db
+  mongo-db:
+    image: mongo
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+volumes:
+  mongo-data:

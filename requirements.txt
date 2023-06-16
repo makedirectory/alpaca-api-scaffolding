@@ -1,0 +1,4 @@
+pandas
+numpy
+alpaca-trade-api
+schedule
