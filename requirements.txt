@@ -2,3 +2,4 @@ pandas
 numpy
 alpaca-trade-api
 schedule
+alpaca-py

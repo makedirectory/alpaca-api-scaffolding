@@ -1,5 +1,6 @@
 import logging
-from src.alpaca.alpaca_api import AlpacaAPI
+from src.alpaca.account_api import AlpacaAccountClient
+from src.alpaca.order_api import AlpacaOrderClient
 from src.scanner.symbol_scanner import SymbolScanner
 from src.portfolio_manager import PortfolioManager
 from src.trade_executor import TradeExecutor
@@ -31,10 +32,11 @@ logger.addHandler(f_handler)
 
 class TradingBot:
     def __init__(self, api_key, api_secret, base_url):
-        self.api = AlpacaAPI(api_key, api_secret, base_url)
+        self.api = AlpacaAccountClient(api_key, api_secret, base_url)
         self.scanner = SymbolScanner(self.api)
         self.portfolio_manager = PortfolioManager(self.api)
         self.trade_executor = TradeExecutor(self.api)
+        self.order_client = AlpacaOrderClient(self.api)
 
     def run(self):
         while True:

@@ -1,40 +1,45 @@
 You can use these functions in your trading_bot.py file like this:
 
 ```python
-from alpaca_api import AlpacaAPI
+from alpaca_api import AlpacaAccountClient
 
-api = AlpacaAPI('<APCA-API-KEY-ID>', '<APCA-API-SECRET-KEY>', 'https://paper-api.alpaca.markets')
+api = AlpacaAccountClient('<APCA-API-KEY-ID>', '<APCA-API-SECRET-KEY>', 'https://paper-api.alpaca.markets')
 
 # Get account details
 account = api.get_account()
 print(account)
 
 # Get account balance
-balance = api.get_balance()
+balance = api.get_cash_balance()
 print(balance)
+```
+
+```python
+from positions_api import AlpacaPositionClient
+
+api = AlpacaPositionClient('<APCA-API-KEY-ID>', '<APCA-API-SECRET-KEY>', 'https://paper-api.alpaca.markets')
 
 # List positions
-positions = api.list_positions()
-for position in positions:
-    print(position)
+positions = api.list_all_positions()
+print(positions)
 
 # Get position for a specific symbol
-position = api.get_position('AAPL')
+position = api.get_open_position('AAPL')
 print(position)
+```
+
+```python
+from orders_api import AlpacaOrderClient
+from alpaca.trading.enums import OrderSide, TimeInForce
+
+api = AlpacaOrderClient('<APCA-API-KEY-ID>', '<APCA-API-SECRET-KEY>', 'https://paper-api.alpaca.markets')
 
 # List orders
-orders = api.list_orders()
-for order in orders:
-    print(order)
+orders = api.list_all_orders()
+print(orders)
 
 # Submit an order
-order = api.submit_order(
-    symbol='AAPL',
-    qty=1,
-    side='buy',
-    type='market',
-    time_in_force='gtc'
-)
+order = api.submit_market_order(symbol='AAPL', qty=1, side=OrderSide.BUY, time_in_force=TimeInForce.GTC)
 print(order)
 ```
 

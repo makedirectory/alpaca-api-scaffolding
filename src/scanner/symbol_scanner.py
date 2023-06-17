@@ -1,12 +1,14 @@
 import pandas as pd
 import alpaca_trade_api as tradeapi
+import schedule
+import time
 
 class SymbolScanner:
     def __init__(self, api):
         self.api = api
 
     def scan_symbols(self, symbols):
-        """Scans symbols and returns those where the last close price is above their 14-day moving average."""
+        """Example: Scans symbols and returns those where the last close price is above their 14-day moving average."""
         above_avg_symbols = []
 
         for symbol in symbols:
@@ -27,3 +29,9 @@ class SymbolScanner:
                 above_avg_symbols.append(symbol)
 
         return above_avg_symbols
+
+    def run(self):
+        schedule.every(120).minutes.do(self.filter_symbols_for_breakout)
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
