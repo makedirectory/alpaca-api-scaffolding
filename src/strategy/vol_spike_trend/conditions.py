@@ -61,9 +61,6 @@ class OrderCondtions:
             except Exception as e:
                 logger.error(f"Error getting {symbol} ticker data: {e}")
 
-            # Another possible idea here would be to buy and hold with stop loss and sell at a standard diviation
-            # this can be calulated at the time of buy. This can all be donw with one order request (with legs).
-
             df = candles
             try:
                 df_with_signals = self.volume_spike(df)
@@ -217,16 +214,14 @@ class OrderCondtions:
             logger.info(f"Submit buy order for {trade_qty} of {symbol}.")
             side = OrderSide.BUY
             buy_order = self.post_order.post_market_order(symbol, trade_qty, side)
-            if buy_order is not None:
-                # print(buy_order)
-                # Check the order response
-                if buy_order.status == OrderStatus.ACCEPTED or buy_order.status == OrderStatus.PENDING_NEW:
-                    logger.info(f"Buy Order placed successfully for {symbol}.")
-                else:
-                    logger.info(f"Buy Order submission failed for {symbol}.")
-                return buy_order
-            else:
+            if buy_order is None:
                 logger.error("Buy order returned None.")
+
+            if buy_order.status != OrderStatus.ACCEPTED or buy_order.status != OrderStatus.PENDING_NEW:
+                logger.info(f"Buy Order submission failed for {symbol}.")
+
+            logger.info(f"Buy Order placed successfully for {symbol}.")                
+            return buy_order                
         except Exception as e:
             logger.error(f"Error placing buy order for {symbol}: {e}")
             # logger.error(traceback.format_exc())
@@ -237,15 +232,15 @@ class OrderCondtions:
             logger.info(f"Submit stop loss for {trade_qty} of {symbol} at {stop_price}.")
             side = OrderSide.SELL
             stop_loss_order = self.post_order.post_stop_order(symbol, trade_qty, side, stop_price)
-            if stop_loss_order is not None:
-                # print(stop_loss_order)
-                if stop_loss_order.status == OrderStatus.ACCEPTED or stop_loss_order.status == OrderStatus.PENDING_NEW:
-                    logger.info(f"Stop Order placed successfully for {symbol}.")
-                else:
-                    logger.info(f"Stop Order submission failed for {symbol}.")
-                return stop_loss_order
-            else:
-                logger.error("Stop loss order returned None.")
+            if stop_loss_order is None:
+               logger.error("Stop loss order returned None.")
+
+            if stop_loss_order.status != OrderStatus.ACCEPTED or stop_loss_order.status != OrderStatus.PENDING_NEW:
+                logger.info(f"Stop Order submission failed for {symbol}.")
+
+            logger.info(f"Stop Order placed successfully for {symbol}.")
+            return stop_loss_order
+                
         except Exception as e:
             logger.error(f"Error placing buy order for {symbol}: {e}")
         return None
@@ -256,15 +251,13 @@ class OrderCondtions:
             trade_qty = current_position
             side = OrderSide.SELL
             sell_order = self.post_order.post_market_order(symbol, trade_qty, side)
-            if sell_order is not None:
-                # print(sell_order)
-                if sell_order.status == OrderStatus.ACCEPTED or sell_order.status == OrderStatus.PENDING_NEW:
-                    logger.info(f"Sell Order placed successfully for {symbol}.")
-                else:
-                    logger.info(f"Sell Order submission failed for {symbol}.")
-                return sell_order
-            else:
+            if sell_order is None:
                 logger.error("Sell order returned None.")
+            if sell_order.status == OrderStatus.ACCEPTED or sell_order.status == OrderStatus.PENDING_NEW:
+                logger.info(f"Sell Order submission failed for {symbol}.")
+
+            logger.info(f"Sell Order placed successfully for {symbol}.")
+            return sell_order                
         except Exception as e:
             logger.error(f"Error placing sell order for {current_position} {symbol}: {e}")
         return None

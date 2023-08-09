@@ -12,7 +12,9 @@ class AlpacaHistData:
         self.hist_api = asset_hist_client
 
     # multi symbol request
-    def get_hist_ticker_data_multi(self, symbols):            
+    def get_hist_ticker_data_multi(self, symbols):   
+        if symbols is None:
+            logger.error("Missing symbols for ticker history")         
         # Example usage
         # gld_latest_ask_price = latest_multisymbol_quotes["GLD"].ask_price
         try: 
@@ -28,7 +30,9 @@ class AlpacaHistData:
         return None
     
     # single symbol request
-    def get_latest_quote(self, symbol):            
+    def get_latest_quote(self, symbol):
+        if symbol is None:
+            logger.error("Missing symbols for ticker quote")               
         # Example usage: must use symbol to access even though it is single symbol
         # latest_quote["ETH/USD"].ask_price
         try: 
@@ -47,6 +51,12 @@ class AlpacaHistData:
         # even for a single symbol request - models are agnostic to number of symbols
         # Ex: bars["NVDA", "AAPL"]
         # TODO: Handle single vs multiple request.
+
+        if symbols is None:
+            logger.error("Missing symbols for ticker bars")   
+
+        if start is None or end is None:
+            logger.error("Missing start or end for ticker bars")   
 
         # Make sure start is earlier than now
         if timeframe is None:
