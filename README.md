@@ -1,21 +1,43 @@
-# Trading Bot Scaffolding 
+# Stock Trading Strategy Alpaca API
 
-This trading bot scaffolding uses the Alpaca API to Implement classes for scanning symbols, managing a portfolio, and executing trades with basic risk managment.
+This project uses RSI, volume spikes, and upward direction of a given set of stocks, and executes a trading strategy based on these predictions using Alpaca API.
 
-## Setup
+## Stocks 
 
-1. Clone the repository: `git clone https://github.com/username/repo.git`
-2. Change into the directory: `cd repo`
-3. Install requirements: `pip install -r requirements.txt`
-4. Run the trading bot: `python trading_bot.py`
+The stocks used for trading can be changed in the `main.py` file. Update the symbols array with the tickers you want to trade.
+```python
+    # Symbols to trade
+    symbols = ['NVDA', 'RIVN', 'NFLX', 'META']
+```
 
-## Docker
+## Portfolio
 
-You can also run the trading bot in a Docker container.
+Risk is managed using beta and a hard trade limit. You can modify the trade ammount in the main.py file
+```python
+    # Amount per trade
+    max_trade_allocation = 1500.00 // Trades will be capped at this amount
+    trade_allocation = 500.00 // Trades start at this amount before taking beta into account
+```
 
-1. Build the Docker image: `docker build -t trading-bot .`
-2. Run the Docker container: `docker run -d -p 80:80 trading-bot`
+### Prerequisites
 
-## Disclaimer
+- Docker installed on your machine
+- Alpaca API key and secret key
+    - rename `config_example.py` to `config.py`
 
-This software is for educational purposes only. USE THE SOFTWARE AT YOUR OWN RISK. THE AUTHORS AND ALL AFFILIATES ASSUME NO RESPONSIBILITY FOR YOUR TRADING RESULTS. Do not risk money which you are afraid to lose. There might be bugs in the code - this software DOES NOT come with ANY warranty.
+## How to Run
+
+1. Clone this repository.
+
+2. Navigate to the directory containing the files.
+
+3. Build the Docker image:
+    ```
+    docker build -t trading-strategy .
+    ```
+4. Run the Docker container:
+    ```
+    docker run -it --rm trading-strategy
+    ```
+
+Please note that the program uses Alpaca API for trading, and thus requires valid API credentials. Replace `APCA_API_KEY_ID` and `APCA_API_SECRET_KEY` in the Python config.py file with your actual API key ID and secret key.

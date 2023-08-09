@@ -1,5 +1,9 @@
 pandas
 numpy
-alpaca-trade-api
+scikit-learn
+pandas_datareader
 schedule
 alpaca-py
+pymongo
+asyncio
+websockets
