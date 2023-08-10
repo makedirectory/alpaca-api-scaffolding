@@ -1,8 +1,8 @@
-from alpaca.trading.enums import AssetClass
 import logging
-# Not sure if this is required. Included in documentation.
+
 from alpaca.trading.requests import GetAssetsRequest
-from alpaca.trading.client import TradingClient
+from alpaca.trading.enums import AssetClass
+
 logger = logging.getLogger()
 
 class AlpacaAssetsClient:

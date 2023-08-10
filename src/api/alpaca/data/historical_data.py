@@ -1,9 +1,8 @@
+import logging
+
 # Historical Data: https://alpaca.markets/docs/python-sdk/market_data.html?highlight=bars#historical-data
 from alpaca.data.requests import StockLatestQuoteRequest
 from alpaca.data.requests import StockBarsRequest
-from alpaca.data.timeframe import TimeFrame
-import logging
-from datetime import datetime, timedelta
 
 logger = logging.getLogger()
 

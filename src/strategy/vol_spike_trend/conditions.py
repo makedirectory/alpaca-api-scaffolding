@@ -1,18 +1,20 @@
 import logging
+import asyncio
+import traceback
+import numpy as np
+import pandas as pd
+from datetime import datetime, timedelta
+
 from alpaca.trading.enums import OrderSide, OrderType, PositionSide, OrderStatus
+from alpaca.data.timeframe import TimeFrame
+
 from src.utils.orders.post_order import PostAlpacaOrder
 from src.portfolio_manager.position_allocator import PositionAllocator
-import numpy as np
 from src.api.alpaca.data.historical_data import AlpacaHistData
-from alpaca.data.timeframe import TimeFrame
-from datetime import datetime, timedelta
 from src.api.alpaca.assets_api import AlpacaAssetsClient
-import pandas as pd
 from src.api.alpaca.position_api import AlpacaPositionClient
 from src.api.alpaca.order_api import AlpacaOrderClient
 from src.indicators.rsi import RsiIndicator
-import asyncio
-import traceback
 
 # Logging setup
 logging.basicConfig(level=logging.INFO,

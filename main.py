@@ -1,11 +1,13 @@
 import logging
 import asyncio
-from src.utils.trading_hours import TradingHours
-from src.strategy.vol_spike_trend.run_strategy import Strategy
 import config
+from datetime import timedelta
+
 from alpaca.trading.client import TradingClient
 from alpaca.data.historical import StockHistoricalDataClient
-from datetime import timedelta
+
+from src.utils.trading_hours import TradingHours
+from src.strategy.vol_spike_trend.run_strategy import Strategy
 from src.api.alpaca.assets_api import AlpacaAssetsClient
 
 # Logging Setup

@@ -1,8 +1,8 @@
-from scipy import stats
-from src.api.alpaca.account_api import AlpacaAccountClient
-from src.indicators.beta import BetaIndicator
 import logging
 import math
+
+from src.api.alpaca.account_api import AlpacaAccountClient
+from src.indicators.beta import BetaIndicator
 
 # Logging setup
 logging.basicConfig(level=logging.INFO,
@@ -28,44 +28,43 @@ class PositionAllocator:
             if capital < float(250.0):
                 logger.info("Insufficient capital, no trades will be made.")
                 return None
-            
-
-            trade_value = min(capital, trade_allocation)
-            try:
-                position_beta_score = self.get_position_beta(symbol)
-            except Exception as e:
-                 position_beta_score = 1.0
-                 logger.error("failed to get position_beta_score")
-
-            try:
-                if position_beta_score == 0:
-                    position_value = min(max_trade_allocation, trade_value)
-                    trade_size = (position_value * 3) / current_price
-                    trade_qty =  int(math.floor(trade_size))  # round to nearest integer before converting to int
-                    return trade_qty
-                elif 0 < position_beta_score <= 3:
-                    position_value = trade_value / position_beta_score
-                    final_position_value = min(max_trade_allocation, position_value)
-                    trade_size = final_position_value / current_price
-                    trade_qty =  int(math.floor(trade_size))  # round to lowest integer before converting to int
-                    return trade_qty
-                elif -3 <= position_beta_score < 0:
-                    position_value = trade_value / abs(position_beta_score)
-                    final_position_value = min(max_trade_allocation, position_value)
-                    trade_size = final_position_value / current_price
-                    trade_qty =  int(math.floor(trade_size))  # round to nearest integer before converting to int
-                    return trade_qty
-                else:
-                    logger.info(f"invalid position beta in calculate_trade_size")
-                    position_value = min(max_trade_allocation, trade_value)
-                    trade_size = position_value / current_price
-                    trade_qty =  int(math.floor(trade_size))  # round to nearest integer before converting to int
-                    return trade_qty
-            except Exception as e:
-                logger.error(f"error getting final trade size: {e}")
-            return None
         except Exception as e:
             logger.error(f"error getting position beta for trade size: {e}")
+            return
+            
+        trade_value = min(capital, trade_allocation)
+        try:
+            position_beta_score = self.get_position_beta(symbol)
+        except Exception as e:
+                position_beta_score = 1.0
+                logger.error("failed to get position_beta_score")
+
+        try:
+            if position_beta_score == 0:
+                position_value = min(max_trade_allocation, trade_value)
+                trade_size = (position_value * 3) / current_price
+                trade_qty =  int(math.floor(trade_size))  # round to nearest integer before converting to int
+                return trade_qty
+            elif 0 < position_beta_score <= 3:
+                position_value = trade_value / position_beta_score
+                final_position_value = min(max_trade_allocation, position_value)
+                trade_size = final_position_value / current_price
+                trade_qty =  int(math.floor(trade_size))  # round to lowest integer before converting to int
+                return trade_qty
+            elif -3 <= position_beta_score < 0:
+                position_value = trade_value / abs(position_beta_score)
+                final_position_value = min(max_trade_allocation, position_value)
+                trade_size = final_position_value / current_price
+                trade_qty =  int(math.floor(trade_size))  # round to nearest integer before converting to int
+                return trade_qty
+            else:
+                logger.info(f"invalid position beta in calculate_trade_size")
+                position_value = min(max_trade_allocation, trade_value)
+                trade_size = position_value / current_price
+                trade_qty =  int(math.floor(trade_size))  # round to nearest integer before converting to int
+                return trade_qty
+        except Exception as e:
+            logger.error(f"error getting final trade size: {e}")
         return None
     
     def get_stop_loss(self, symbol, current_price, base_stop_loss=0.10):

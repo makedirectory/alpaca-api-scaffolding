@@ -1,8 +1,5 @@
 import logging
 
-# Not sure if this is required. Included in documentation.
-from alpaca.trading.requests import GetAssetsRequest
-
 logger = logging.getLogger()
 
 class AlpacaPositionClient:

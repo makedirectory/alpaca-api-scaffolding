@@ -1,6 +1,5 @@
-from alpaca.data import StockDataStream
-import asyncio
 import logging
+from alpaca.data import StockDataStream
 
 logger = logging.getLogger()
 

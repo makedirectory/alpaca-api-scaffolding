@@ -1,8 +1,12 @@
-import pandas as pd
-from src.api.alpaca.data.historical_data import AlpacaHistData 
 import logging
+import pandas as pd
 from datetime import datetime, timedelta
+
 from alpaca.data.timeframe import TimeFrame
+from src.api.alpaca.data.historical_data import AlpacaHistData 
+
+
+
 
 # Logging setup
 logging.basicConfig(level=logging.INFO,

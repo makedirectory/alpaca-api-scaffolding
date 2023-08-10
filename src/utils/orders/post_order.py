@@ -1,5 +1,5 @@
 import logging
-from alpaca.trading.enums import OrderSide, TimeInForce
+from alpaca.trading.enums import OrderSide
 from src.api.alpaca.order_api import AlpacaOrderClient
 
 # Logging setup
@@ -68,7 +68,7 @@ class PostAlpacaOrder:
     def post_bracket_order(self, symbol, trade_qty, stop_price, take_profit):
         if stop_price is None or take_profit is None:
             logger.error("no stop price / take profit on OCO Order")
-            
+
         logger.info(f"Placing stop limit oco order: symbol: {symbol} qty: {trade_qty} take profit: {take_profit} stop: {stop_price}")
         try:
             order = self.order_api.submit_bracket_order(symbol, trade_qty, stop_price, take_profit)
