@@ -49,76 +49,78 @@ class OrderCondtions:
             logger.info(f"Cannot trade {symbol}, skipping.")
             return
 
+        # Get the current date
+        now = datetime.now()
+        start = now - timedelta(days=30,minutes=16)
+        # Calculate the date - 1 day
+        end = now - timedelta(minutes=16)
+        timeframe = TimeFrame.Minute
         try:
-            # Get the current date
-            now = datetime.now()
-            start = now - timedelta(days=30,minutes=16)
-            # Calculate the date - 1 day
-            end = now - timedelta(minutes=16)
-            timeframe = TimeFrame.Minute
-            try:
-                candles = self.hist_api.get_bars_for_ticker(symbol, start, end, timeframe)
-            except Exception as e:
-                logger.error(f"Error getting {symbol} ticker data: {e}")
+            candles = self.hist_api.get_bars_for_ticker(symbol, start, end, timeframe)
+        except Exception as e:
+            logger.error(f"Error getting {symbol} ticker data: {e}")
 
-            df = candles
-            try:
-                df_with_signals = self.volume_spike(df)
-            except Exception as e:
-                logger.error(f"error getting signals via vol spike.")
+        df = candles
+        try:
+            df_with_signals = self.volume_spike(df)
+        except Exception as e:
+            logger.error(f"error getting signals via vol spike.")
 
+        try:
             buy_signal = df_with_signals['buy_signals'].iloc[-1]
             sell_signal = df_with_signals['sell_signals'].iloc[-1]
+        except Exception as e:
+            logger.error(f"Error getting signals for {symbol}.")
 
+        try:
             # Get the lastest quote
             quote_data = self.hist_api.get_latest_quote(symbol)
             mean_price = (quote_data[symbol].ask_price + quote_data[symbol].bid_price) / 2
             current_price = mean_price
-
-            # FOR TESTING 
-            # current_price = df_with_signals['close'].iloc[-1]
-
         except Exception as e:
-             logger.error(f"Error getting signals for {symbol}.")
+            logger.error(f"Error getting quote data for {symbol}. Is the market open?")
+            current_price = df['close'].iloc[-1]
+            logger.error(f"It's okay, we got you. Using the last close instead.")
 
         if sell_signal:
             logger.info(f"Sell Signal triggered for {symbol}: checking position")
             try:
                 current_position = self.open_positions.get_open_position(symbol)
-                if current_position is None:
-                    logger.info(f"Stopping sale of {symbol}. Non held")
-                else:
-                    try: 
-                        open_orders = self.order_api.list_all_orders(symbol, side=OrderSide.SELL)
-                        # if int(current_position.qty_available) != int(current_position.qty):
-                        # logger.info(f"Available qty and trading qty diverged for {symbol}")
-                        # Filter the list to find orders for the specified symbol
-                        symbol_orders = [order for order in open_orders if order.symbol == symbol]
-                        stop_orders = [order for order in symbol_orders if order.order_type == OrderType.STOP]
-                        # Canel open sell orders
-                        if stop_orders:
-                            logger.info(f"There are open sell orders for {symbol}. Must cancle them.")
-                            # Canceliing all orders
-                            # TODO: Handle other order types. ie: for order in stop_orders:
-                            for order in symbol_orders:
-                                # print(f"symbol: {order.id}")
-                                order_id = order.id
-                                self.order_api.cancel_order(order_id)
-
-                
-                        if current_position.side == PositionSide.LONG:   
-                            logger.info(f"Sell signal triggered for {symbol}")
-                            try:  
-                                sell_order = self.sell_order(symbol, current_position.qty)
-                                return sell_order
-                            except Exception as e:
-                                logger.info(f"failed to place sell order")
-                    except Exception as e:
-                        logger.error(f"failed to open sell order for {symbol}: {e}")
-                    
-
             except Exception as e:
                 logger.error(f"failed to get current position for {symbol}: {e}")
+            
+            if current_position is None:
+                logger.info(f"Stopping sale of {symbol}. Non held")
+                return
+            
+            try: 
+                open_orders = self.order_api.list_all_orders(symbol, side=OrderSide.SELL)
+                # if int(current_position.qty_available) != int(current_position.qty):
+                # logger.info(f"Available qty and trading qty diverged for {symbol}")
+                # Filter the list to find orders for the specified symbol
+                symbol_orders = [order for order in open_orders if order.symbol == symbol]
+                stop_orders = [order for order in symbol_orders if order.order_type == OrderType.STOP]
+            except Exception as e:
+                logger.error(f"failed to get open orders for {symbol}: {e}")
+            # Canel open sell orders
+            if stop_orders:
+                logger.info(f"There are open sell orders for {symbol}. Must cancle them.")
+                # Canceliing all orders
+                # TODO: Handle other order types. ie: for order in stop_orders:
+                for order in symbol_orders:
+                    # print(f"symbol: {order.id}")
+                    order_id = order.id
+                    self.order_api.cancel_order(order_id)
+
+            if current_position.side != PositionSide.LONG:
+                logger.error(f"Stop Sell signal triggered for {symbol}, not long.")
+
+            try:  
+                logger.error(f"Sell signal triggered for {symbol}")
+                sell_order = self.sell_order(symbol, current_position.qty)
+                return sell_order
+            except Exception as e:
+                logger.info(f"failed to place sell order")
 
 
         if buy_signal:
@@ -128,62 +130,62 @@ class OrderCondtions:
             # Filter the list to find orders for the specified symbol
             symbol_orders = [order for order in open_orders if order.symbol == symbol]
 
-            if not symbol_orders:
+            if symbol_orders:
+                logger.info(f"There are open buy orders for {symbol}. Not proceeding with trade...")
+                return
+            
+            if int(current_position.qty) > 0:
+                logger.info(f"Open positions for {symbol}. Not proceeding with trade...")
+                return
+            
+            trade_qty = self.position_allocator.calculate_trade_size(symbol, trade_allocation, max_trade_allocation, current_price)
+
+            if trade_qty == 0 or trade_qty is None:
+                logger.error(f"Final Trade size is 0. Buy order failed")
+                return
+    
+            try:
+                logger.info(f"No open buy orders or positions for {symbol}. Proceeding with trade...")
+                buy_order = self.buy_order(symbol, trade_qty)
+                await asyncio.sleep(5)
+            except Exception as e:
+                logger.info("BUY ORDER FAILED")
                 
-                logger.info(f"No open buy orders for {symbol}. Proceeding with trade...")
-                if current_position is None:
-                    logger.info(f"No open positions for {symbol}. Proceeding with trade...")
-                    trade_qty = self.position_allocator.calculate_trade_size(symbol, trade_allocation, max_trade_allocation, current_price)
-                    # print(trade_qty)
-                    if trade_qty == 0 or trade_qty is None:
-                        logger.error(f"Final Trade size is 0. Buy order failed")
-                        return
-                    else:
-                        # print(f"trade qty: {trade_qty}")
-                        buy_order = self.buy_order(symbol, trade_qty)
-                        await asyncio.sleep(5)
-                        if buy_order is not None:
-                            id = str(buy_order.id)
-                            logger.info(f"BUY ORDER {id} COMPLETE.")
-                            try: 
-                                position_stop_loss = self.position_allocator.get_stop_loss(symbol, current_price)
-                                # If under $1, round to .0001
-                                if position_stop_loss < 1.00:
-                                    stop = round(position_stop_loss, 4)
-                                # If over $1, round to .01
-                                elif position_stop_loss >= 1.00:
-                                    stop = round(position_stop_loss, 2)
+            if buy_order is None:
+                logger.error("buy order failed")
+                return
+            
+            id = str(buy_order.id)
+            logger.info(f"BUY ORDER {id} COMPLETE.")
+            try: 
+                position_stop_loss = self.position_allocator.get_stop_loss(symbol, current_price)
+                # If under $1, round to .0001
+                if position_stop_loss < 1.00:
+                    stop = round(position_stop_loss, 4)
+                # If over $1, round to .01
+                if position_stop_loss >= 1.00:
+                    stop = round(position_stop_loss, 2)
 
-                                # print(f"init_stop_price: {stop}")
-                                stop_price = float(stop)
-                                # print(f"stop_price: {stop_price}")
+                # print(f"init_stop_price: {stop}")
+                stop_price = float(stop)
+                # print(f"stop_price: {stop_price}")
 
-                                max_loss = (current_price * trade_qty) - (stop_price * trade_qty)
-                                round_max_loss = round(max_loss, 4)
-                                logger.info(f"Max Position loss: {round_max_loss}")
-                                logger.info(buy_order.id)
-                                # print(type(buy_order))
+                max_loss = (current_price * trade_qty) - (stop_price * trade_qty)
+                round_max_loss = round(max_loss, 4)
+                logger.info(f"Max Position loss: {round_max_loss}")
+            except Exception as e:
+                logger.error(f"Error setting position stop loss for {symbol}: {e}")
 
-                                order_id = buy_order
-                                try:
-                                    await self.manage_orders(symbol, trade_qty, stop_price, order_id)
-                                    logger.info("STOP ORDER COMPLETE")
-                                except Exception as e:
-                                    logger.info("STOP ORDER FAILED")
-                                
-                            except Exception as e:
-                                logger.error(f"Error setting stop loss order for {symbol}: {e}")
-                        else:
-                            # Handle the case when buy_order is None
-                            logger.info("BUY ORDER FAILED")
-                            logger.error('buy_order is None')
-                            return
-                        
-                    return None
-                elif int(current_position.qty) > 0:
-                    logger.info(f"{symbol} is already purchased.")
-            else:
-                logger.info(f"There are open buy orders for {symbol}. Not proceeding with trade.")
+            order_id = buy_order
+            try:
+                await self.manage_orders(symbol, trade_qty, stop_price, order_id)
+                logger.info("STOP ORDER COMPLETE")
+            except Exception as e:
+                logger.info("STOP ORDER FAILED")
+                
+
+                
+
 
     # TODO: actively check for open orders without a stop loss
     # Main function to manage the orders
@@ -202,12 +204,14 @@ class OrderCondtions:
             # check our recent orders to see if it's been filled
             recent_orders = self.order_api.list_all_orders(symbol, side=OrderSide.BUY, status='all', limit=10)
             for order in recent_orders:
-                if order.id == original_order.id:
-                    logger.info(f"Checking status...")
-                    if order.status == 'filled':
-                        # our order was filled, let's place our stop loss order
-                        self.stop_loss_order(symbol, trade_qty, stop_price)
-                        order_filled = True  # exit the loop
+                if order.id != original_order.id:
+                    return
+                if order.status != 'filled':
+                    return
+                logger.info(f"Checking status...")
+                # our order was filled, let's place our stop loss order
+                self.stop_loss_order(symbol, trade_qty, stop_price)
+                order_filled = True  # exit the loop
 
     def buy_order(self, symbol, trade_qty):
         try:
