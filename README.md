@@ -40,4 +40,13 @@ Risk is managed using beta and a hard trade limit. You can modify the trade ammo
     docker run -it --rm trading-strategy
     ```
 
+Program runs in an infinite loop and does daily trading. To stop it, press ctrl+c. Stocks will manually have to be sold, and orders cancelled, via `python close_all_positions.py`
+
 Please note that the program uses Alpaca API for trading, and thus requires valid API credentials. Replace `APCA_API_KEY_ID` and `APCA_API_SECRET_KEY` in the Python config.py file with your actual API key ID and secret key.
+
+
+## Disclaimer
+
+This software is for educational purposes only. USE THE SOFTWARE AT YOUR OWN RISK. THE AUTHORS AND ALL AFFILIATES ASSUME NO RESPONSIBILITY FOR YOUR TRADING RESULTS. Do not risk money which you are afraid to lose. There might be bugs in the code - this software DOES NOT come with ANY warranty.
+
+
