@@ -48,7 +48,7 @@ Please note that the program uses Alpaca API for trading, and thus requires vali
 
 The realm of algorithmic trading often seems like a labyrinth, melding together intricacies from diverse fields of knowledge. Whether it's coding, mathematics, finance, or strategy, every facet has its unique challenges. My ambition in creating this stock trading algorithm, utilizing the Alpaca API, was to strip away some of these complexities, rendering the process more accessible and understandable.
 
-I envision a trading world where the technical and mathematical intricacies aren't barriers, but rather tools that everyone can harness. And in the pursuit of this vision, collaboration is key. I genuinely welcome inputs, insights, and contributions from the community. If you have ideas, refinements, or even critiques, I encourage you to submit a Pull Request. Together, we can refine this tool into an even more powerful learning asset for traders everywhere.
+I envision a trading world where the technical and mathematical intricacies aren't barriers, but rather tools that everyone can harness. And in the pursuit of this vision, collaboration is key. I genuinely welcome inputs, insights, and contributions from the community. If you have ideas, refinements, or even critiques, I encourage you to submit a Pull Request. Together, we can refine this tool into an even more powerful learning tool for traders everywhere.
 
 
 ## Disclaimer
