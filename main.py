@@ -6,7 +6,7 @@ from datetime import timedelta
 from alpaca.trading.client import TradingClient
 from alpaca.data.historical import StockHistoricalDataClient
 
-from src.utils.trading_hours import TradingHours
+from src.api.alpaca.calender import TradingCalendar
 from src.strategy.vol_spike_trend.run_strategy import Strategy
 from src.api.alpaca.assets_api import AlpacaAssetsClient
 
@@ -20,8 +20,10 @@ async def main():
     # Instantiate Alpaca Trade Client
     trading_client = TradingClient(api_key=config.APCA_API_KEY_ID, secret_key=config.APCA_API_SECRET_KEY, paper=True)
     
+    # # Get market availability
+    # trading_hours = TradingHours(trading_client)
     # Get market availability
-    trading_hours = TradingHours(trading_client)
+    trading_schedule = TradingCalendar(trading_client)
 
     # Cadence: Time to sleep after every full loop iteration, in seconds. 3 minutes in this case.
     cadence = 60 * 2
@@ -29,6 +31,7 @@ async def main():
     # Symbols to trade
     symbols = ['NVDA', 'RIVN', 'NFLX', 'META', 'BAC', 
                  'MS', 'LM', 'TSLA', 'GS']
+    
     assets_api = AlpacaAssetsClient(trading_client)
     # symbols = assets_api.get_all_equities()
     tradable_symbols = [symbol for symbol in symbols if assets_api.get_can_trade(symbol)]
@@ -59,32 +62,32 @@ async def main():
         minutes = int(cadence/60)
         logger.info(f"Market is closed. Algorithm is paused. Will check again in {minutes} minutes")
 
-    async def run_strategies():
+    async def trading_tasks():
         # Run the trading strategy
 
-        strategies = asyncio.gather(
+        tasks = asyncio.gather(
             *[strategy.run_strategy(symbol, trade_allocation, max_trade_allocation) for symbol in tradable_symbols]
         )
 
-        await strategies
+        await tasks
 
     open_tasks_completed = False
     close_tasks_completed = False
 
     while True:
-        current_time, is_market_open, next_open, next_close = trading_hours.get_market_status()
+        market_status = trading_schedule.get_market_status()
 
-        if is_market_open:
+        if market_status.is_market_open:
             logger.info("Market is open.")
 
-            if not open_tasks_completed and next_open + timedelta(minutes=3) >= current_time:
+            if not open_tasks_completed and market_status.next_open + timedelta(minutes=3) >= market_status.current_time:
                 await market_open_tasks()
                 open_tasks_completed = True
                 logger.info("Market open tasks complete. Trading begins...")
             
-            await run_strategies()
+            await trading_tasks()
 
-            if not close_tasks_completed and next_close - timedelta(minutes=1) < current_time:
+            if not close_tasks_completed and market_status.next_close - timedelta(minutes=1) < market_status.current_time:
                 await market_close_tasks()
                 close_tasks_completed = True
         else:
