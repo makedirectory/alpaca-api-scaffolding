@@ -1,6 +1,9 @@
 import logging
 import asyncio
 import config
+import websockets
+import json
+import socket
 from datetime import timedelta
 
 from alpaca.trading.client import TradingClient
@@ -15,13 +18,58 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+async def stream_account_actions():
+    try:
+        async with websockets.connect('wss://paper-api.alpaca.markets/stream') as websocket:
+            await websocket.send(json.dumps({
+                "action": "auth",
+                "key": config.APCA_API_KEY_ID,
+                "secret": config.APCA_API_SECRET_KEY
+            }))
+            response = await websocket.recv()
+            logger.info(f"Account actions stream response: {response}")
+
+            await websocket.send(json.dumps({
+                "action": "listen",
+                "data": {
+                    "streams": ["trade_updates"]
+                }
+            }))
+            while True:
+                message = await websocket.recv()
+                logger.info(f"Account action: {message}")
+    except Exception as e:
+        logger.error(f"Error in stream_account_actions: {e}")
+
+async def stream_market_data(symbols):
+    try:
+        async with websockets.connect('wss://paper-data.alpaca.markets/stream') as websocket:
+            await websocket.send(json.dumps({
+                "action": "auth",
+                "key": config.APCA_API_KEY_ID,
+                "secret": config.APCA_API_SECRET_KEY
+            }))
+            response = await websocket.recv()
+            logger.info(f"Market data stream response: {response}")
+
+            await websocket.send(json.dumps({
+                "action": "listen",
+                "data": {
+                    "streams": [f"T.{symbol}" for symbol in symbols]
+                }
+            }))
+            while True:
+                message = await websocket.recv()
+                logger.info(f"Market data: {message}")
+    except socket.gaierror as e:
+        print(f"Socket error: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
 async def main():
-    
     # Instantiate Alpaca Trade Client
     trading_client = TradingClient(api_key=config.APCA_API_KEY_ID, secret_key=config.APCA_API_SECRET_KEY, paper=True)
     
-    # # Get market availability
-    # trading_hours = TradingHours(trading_client)
     # Get market availability
     trading_schedule = TradingCalendar(trading_client)
 
@@ -117,8 +165,11 @@ if __name__ == "__main__":
         asyncio.set_event_loop(loop)
 
     try:
-        # Run the main coroutine until completion
-        loop.run_until_complete(main())
+        loop.run_until_complete(asyncio.gather(
+            main(),
+            stream_account_actions(),
+            stream_market_data(['NVDA', 'RIVN', 'NFLX', 'META', 'BAC', 'MS', 'LM', 'TSLA', 'GS'])
+        ))
     except KeyboardInterrupt:
         # If we get a KeyboardInterrupt (e.g., from Ctrl+C), cancel all running tasks
         for task in asyncio.all_tasks(loop):
@@ -126,6 +177,8 @@ if __name__ == "__main__":
         # Now, gather all tasks. Because we've just cancelled them, this will give them a chance to 
         # clean up (i.e., execute any `finally` blocks) before they're destroyed.
         loop.run_until_complete(asyncio.gather(*asyncio.all_tasks(loop), return_exceptions=True))
+    except Exception as e:
+        print(f"An error occurred in the main loop: {e}")
     finally:
         # Close the loop
         loop.close()

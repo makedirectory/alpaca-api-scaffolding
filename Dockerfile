@@ -16,6 +16,9 @@ COPY requirements.txt .
 
 ENV MPLLOCALFREETYPE 1
 
+# Set an environment variable to prevent Python from buffering stdout/stderr
+ENV PYTHONUNBUFFERED 1
+
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -26,7 +29,7 @@ COPY . .
 EXPOSE 80
 
 # Run the application
-CMD ["python", "main.py"]
+CMD ["watchmedo", "auto-restart", "--directory=/app", "--patterns=*.py", "--recursive", "--", "python", "main.py"]
 
 # Cancel all orders
 # CMD ["python", "cancel_all_orders.py"]
