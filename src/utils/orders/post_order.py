@@ -65,13 +65,17 @@ class PostAlpacaOrder:
             logger.error(f"Error placing stop order for {order.symbol}: {e}")
         return None
         
-    def post_bracket_order(self, symbol, trade_qty, stop_price, take_profit):
+    def post_bracket_order(self, symbol, side, trade_qty, stop_price, take_profit):
         if stop_price is None or take_profit is None:
             logger.error("no stop price / take profit on OCO Order")
 
+        if side is None:
+            logger.error("no side on OCO Order")
+
+
         logger.info(f"Placing stop limit oco order: symbol: {symbol} qty: {trade_qty} take profit: {take_profit} stop: {stop_price}")
         try:
-            order = self.order_api.submit_bracket_order(symbol, trade_qty, stop_price, take_profit)
+            order = self.order_api.submit_bracket_order(symbol, side, trade_qty, stop_price, take_profit)
             return order
 
         except Exception as e:

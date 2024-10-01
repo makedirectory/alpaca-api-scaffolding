@@ -96,7 +96,7 @@ class OrderCondtions:
                 return
             
             try: 
-                open_orders = self.order_api.list_all_orders(symbol, side=OrderSide.SELL)
+                open_orders = self.order_api.list_open_orders(symbol, side=OrderSide.SELL)
                 # if int(current_position.qty_available) != int(current_position.qty):
                 # logger.info(f"Available qty and trading qty diverged for {symbol}")
                 # Filter the list to find orders for the specified symbol
@@ -127,7 +127,7 @@ class OrderCondtions:
 
         if buy_signal:
             current_position = self.open_positions.get_open_position(symbol)
-            open_orders = self.order_api.list_all_orders(symbol, side=OrderSide.BUY)
+            open_orders = self.order_api.list_open_orders(symbol, side=OrderSide.BUY)
 
             # Filter the list to find orders for the specified symbol
             symbol_orders = [order for order in open_orders if order.symbol == symbol]
@@ -204,7 +204,7 @@ class OrderCondtions:
             await asyncio.sleep(timeout)  # wait a few seconds before checking again
 
             # check our recent orders to see if it's been filled
-            recent_orders = self.order_api.list_all_orders(symbol, side=OrderSide.BUY, status='all', limit=10)
+            recent_orders = self.order_api.list_open_orders(symbol, side=OrderSide.BUY, status='all', limit=10)
             for order in recent_orders:
                 if order.id != original_order.id:
                     return

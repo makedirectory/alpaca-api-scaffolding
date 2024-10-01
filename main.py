@@ -44,6 +44,14 @@ async def stream_account_actions():
             while True:
                 message = await websocket.recv()
                 logger.info(f"Account action: {message}")
+
+    except asyncio.exceptions.CancelledError:
+        logger.info("Task for stream_account_actions was cancelled.")
+        raise  # Ensure we re-raise the exception after logging it for proper task cleanup
+
+    except websockets.ConnectionClosed as e:
+        logger.error(f"WebSocket connection closed: {e}")
+    
     except Exception as e:
         logger.error(f"An error occurred in stream_account_actions: {e}")
     
@@ -55,9 +63,10 @@ async def stream_account_actions():
 
 async def stream_market_data(tickers):
     websocket = None  # Initialize websocket variable to None
+    subscribed_tickers = set()  # To track currently subscribed tickers
     try:
         paper = await trading_paper()
-        url = 'wss://paper-data.alpaca.markets/stream' if paper else 'wss://data.alpaca.markets/stream'
+        url = 'wss://stream.data.alpaca.markets/v2/test' if paper else 'wss://data.alpaca.markets/stream'
         async with websockets.connect(url) as websocket:
             await websocket.send(json.dumps({
                 "action": "auth",
@@ -67,15 +76,37 @@ async def stream_market_data(tickers):
             response = await websocket.recv()
             logger.info(f"Market data stream response: {response}")
 
-            await websocket.send(json.dumps({
-                "action": "listen",
-                "data": {
-                    "streams": [f"T.{symbol}" for symbol in tickers]
-                }
-            }))
             while True:
+                # Find which tickers are new and which need to be unsubscribed
+                new_tickers = set(tickers) - subscribed_tickers
+                tickers_to_remove = subscribed_tickers - set(tickers)
+
+                # Subscribe to new tickers
+                if new_tickers:
+                    await websocket.send(json.dumps({
+                        "action": "subscribe",
+                        "trades": list(new_tickers)
+                    }))
+                    subscribed_tickers.update(new_tickers)
+                    logger.info(f"Subscribed to new tickers: {new_tickers}")
+
+                # Unsubscribe from removed tickers
+                if tickers_to_remove:
+                    await websocket.send(json.dumps({
+                        "action": "unsubscribe",
+                        "trades": list(tickers_to_remove)
+                    }))
+                    subscribed_tickers.difference_update(tickers_to_remove)
+                    logger.info(f"Unsubscribed from tickers: {tickers_to_remove}")
+
+                # Receive market data
                 message = await websocket.recv()
                 logger.info(f"Market data: {message}")
+    
+    except asyncio.exceptions.CancelledError:
+        logger.info("Task for market_stream was cancelled.")
+        raise  # Ensure we re-raise the exception after logging it for proper task cleanup
+
     except socket.gaierror as e:
         print(f"Socket error: {e}")
     except Exception as e:
@@ -121,7 +152,7 @@ async def main(tickers):
         # At market close calculate end-of-day statistics and pause algorithm
         # TODO: Implement function to calculate end-of-day statistics here.
         # Cancel any open buy orders at the end of the day.
-        # orders = order_api.list_all_orders(status="open")
+        # orders = order_api.list_open_orders(status="open")
         # for order in orders:
         #     order_api.cancel_all_orders(order.id) # Update function to cancel one at a time
         minutes = int(cadence/60)
@@ -192,14 +223,16 @@ if __name__ == "__main__":
             stream_market_data(tickers)
         ))
     except KeyboardInterrupt:
-        # If we get a KeyboardInterrupt (e.g., from Ctrl+C), cancel all running tasks
-        for task in asyncio.all_tasks(loop):
+        # Handle KeyboardInterrupt and cancel all tasks
+        logger.info("KeyboardInterrupt received. Canceling tasks...")
+        tasks = asyncio.all_tasks(loop)
+        for task in tasks:
             task.cancel()
-        # Now, gather all tasks. Because we've just cancelled them, this will give them a chance to 
-        # clean up (i.e., execute any `finally` blocks) before they're destroyed.
-        loop.run_until_complete(asyncio.gather(*asyncio.all_tasks(loop), return_exceptions=True))
+        # Wait for all tasks to be cancelled properly
+        loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
     except Exception as e:
-        print(f"An error occurred in the main loop: {e}")
+        logger.error(f"An error occurred in the main loop: {e}")
     finally:
-        # Close the loop
+        # Ensure the event loop is properly closed
+        logger.info("Closing the event loop.")
         loop.close()
