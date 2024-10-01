@@ -37,7 +37,7 @@ Risk is managed using beta and a hard trade limit. You can modify the trade ammo
     ```
 4. Run the Docker container:
     ```
-    docker run -it --rm trading-strategy
+    docker run -it -v $(pwd):/app -p 80:80 trading-strategy
     ```
 
 Program runs in an infinite loop and does daily trading. To stop it, press ctrl+c. Stocks will manually have to be sold, and orders cancelled, via `python close_all_positions.py`

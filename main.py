@@ -18,9 +18,14 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+async def trading_paper():
+    return config.PAPER_TRADE;
+
 async def stream_account_actions():
     try:
-        async with websockets.connect('wss://paper-api.alpaca.markets/stream') as websocket:
+        paper = await trading_paper()
+        url = 'wss://paper-api.alpaca.markets/stream' if paper else 'wss://api.alpaca.markets/stream'
+        async with websockets.connect(url) as websocket:
             await websocket.send(json.dumps({
                 "action": "auth",
                 "key": config.APCA_API_KEY_ID,
@@ -43,7 +48,9 @@ async def stream_account_actions():
 
 async def stream_market_data(symbols):
     try:
-        async with websockets.connect('wss://paper-data.alpaca.markets/stream') as websocket:
+        paper = await trading_paper()
+        url = 'wss://paper-data.alpaca.markets/stream' if paper else 'wss://data.alpaca.markets/stream'
+        async with websockets.connect(url) as websocket:
             await websocket.send(json.dumps({
                 "action": "auth",
                 "key": config.APCA_API_KEY_ID,
@@ -68,7 +75,8 @@ async def stream_market_data(symbols):
 
 async def main():
     # Instantiate Alpaca Trade Client
-    trading_client = TradingClient(api_key=config.APCA_API_KEY_ID, secret_key=config.APCA_API_SECRET_KEY, paper=True)
+    paper = await trading_paper()
+    trading_client = TradingClient(api_key=config.APCA_API_KEY_ID, secret_key=config.APCA_API_SECRET_KEY, paper=paper)
     
     # Get market availability
     trading_schedule = TradingCalendar(trading_client)
