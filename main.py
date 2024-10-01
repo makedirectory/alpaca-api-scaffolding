@@ -46,7 +46,7 @@ async def stream_account_actions():
     except Exception as e:
         logger.error(f"Error in stream_account_actions: {e}")
 
-async def stream_market_data(symbols):
+async def stream_market_data(tickers):
     try:
         paper = await trading_paper()
         url = 'wss://paper-data.alpaca.markets/stream' if paper else 'wss://data.alpaca.markets/stream'
@@ -62,7 +62,7 @@ async def stream_market_data(symbols):
             await websocket.send(json.dumps({
                 "action": "listen",
                 "data": {
-                    "streams": [f"T.{symbol}" for symbol in symbols]
+                    "streams": [f"T.{symbol}" for symbol in tickers]
                 }
             }))
             while True:
@@ -73,7 +73,7 @@ async def stream_market_data(symbols):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-async def main():
+async def main(tickers):
     # Instantiate Alpaca Trade Client
     paper = await trading_paper()
     trading_client = TradingClient(api_key=config.APCA_API_KEY_ID, secret_key=config.APCA_API_SECRET_KEY, paper=paper)
@@ -83,14 +83,10 @@ async def main():
 
     # Cadence: Time to sleep after every full loop iteration, in seconds. 3 minutes in this case.
     cadence = 60 * 2
-
-    # Symbols to trade
-    symbols = ['NVDA', 'RIVN', 'NFLX', 'META', 'BAC', 
-                 'MS', 'LM', 'TSLA', 'GS']
     
     assets_api = AlpacaAssetsClient(trading_client)
     # symbols = assets_api.get_all_equities()
-    tradable_symbols = [symbol for symbol in symbols if assets_api.get_can_trade(symbol)]
+    tradable_symbols = [ticker for ticker in tickers if assets_api.get_can_trade(ticker)]
 
     # Amount per trade
     max_trade_allocation = 1500.00
@@ -164,6 +160,10 @@ if __name__ == "__main__":
     fh.setFormatter(logging.Formatter(fmt))
     logger.addHandler(fh)
 
+    # Symbols to trade
+    tickers = ['NVDA', 'RIVN', 'NFLX', 'META', 'BAC', 
+                 'MS', 'LM', 'TSLA', 'GS']
+
     # Get the currently running event loop
     loop = asyncio.get_event_loop()
 
@@ -174,9 +174,9 @@ if __name__ == "__main__":
 
     try:
         loop.run_until_complete(asyncio.gather(
-            main(),
+            main(tickers),
             stream_account_actions(),
-            stream_market_data(['NVDA', 'RIVN', 'NFLX', 'META', 'BAC', 'MS', 'LM', 'TSLA', 'GS'])
+            stream_market_data(tickers)
         ))
     except KeyboardInterrupt:
         # If we get a KeyboardInterrupt (e.g., from Ctrl+C), cancel all running tasks
