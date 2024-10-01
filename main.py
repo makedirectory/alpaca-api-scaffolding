@@ -22,6 +22,7 @@ async def trading_paper():
     return config.PAPER_TRADE;
 
 async def stream_account_actions():
+    websocket = None  # Initialize websocket variable to None
     try:
         paper = await trading_paper()
         url = 'wss://paper-api.alpaca.markets/stream' if paper else 'wss://api.alpaca.markets/stream'
@@ -44,9 +45,16 @@ async def stream_account_actions():
                 message = await websocket.recv()
                 logger.info(f"Account action: {message}")
     except Exception as e:
-        logger.error(f"Error in stream_account_actions: {e}")
+        logger.error(f"An error occurred in stream_account_actions: {e}")
+    
+    finally:
+        # Ensure WebSocket is closed if it was opened
+        if websocket is not None:
+            logger.info("Closing WebSocket connection for account actions.")
+            await websocket.close()
 
 async def stream_market_data(tickers):
+    websocket = None  # Initialize websocket variable to None
     try:
         paper = await trading_paper()
         url = 'wss://paper-data.alpaca.markets/stream' if paper else 'wss://data.alpaca.markets/stream'
@@ -72,6 +80,11 @@ async def stream_market_data(tickers):
         print(f"Socket error: {e}")
     except Exception as e:
         print(f"An error occurred: {e}")
+
+    finally:
+        if websocket is not None:
+            logger.info("Closing WebSocket connection for market data.")
+            await websocket.close()
 
 async def main(tickers):
     # Instantiate Alpaca Trade Client
